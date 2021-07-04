@@ -1,0 +1,44 @@
+# import the opencv library
+import cv2
+import numpy as np
+
+def getcontour(img):
+    contours,hierchy=cv2.findContours(img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+    for cnt in contours:
+        area=cv2.contourArea(cnt)
+        #print(area)
+        peri=cv2.arcLength(cnt,True)
+        approx=cv2.approxPolyDP(cnt,0.01*peri,True)
+        cv2.drawContours(img2,cnt,-1,(250,0,0),3)
+        x , y , w , h =cv2.boundingRect(approx)
+        #cv2.rectangle(img2,(x,y),(x+w,y+h),(0,255,0),2)
+        if len(approx)==3:
+            objecttype='TRI'
+        elif len(approx)==4:
+            objecttype='FOUR'
+        elif len(approx) == 5:
+            objecttype = 'Five'
+        elif len(approx) == 6:
+            objecttype = 'SIX'
+        elif len(approx) == 8:
+            objecttype = 'eight'
+        else:
+              objecttype='circle'
+
+        cv2.putText(img2,objecttype,(x+w//2,y+h//2),cv2.FONT_HERSHEY_TRIPLEX,0.5,(255,0,0),1)
+
+img=cv2.imread("resources/shapes2.jpg")
+imgresize=cv2.resize(img,(1000,400))
+imgray=cv2.cvtColor(imgresize,cv2.COLOR_BGR2GRAY)
+imblur=cv2.GaussianBlur(imgray,(7,7),1)
+imgcanny=cv2.Canny(imblur,30,30)
+img2=np.zeros_like(imgresize)
+getcontour(imgcanny)
+
+
+#cv2.imshow("shape",imgcanny)
+#cv2.imshow("shape2",imblur)
+cv2.imshow("shape",img2)
+
+cv2.waitKey(0)
+
