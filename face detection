@@ -1,0 +1,16 @@
+import cv2
+import numpy as np
+
+facecascade=cv2.CascadeClassifier("resources/haarcascade_frontalface_default.xml")
+img=cv2.imread("resources/many.jpg")
+imgre=cv2.resize(img,(800,500))
+imggray=cv2.cvtColor(imgre,cv2.COLOR_BGR2GRAY)
+faces=facecascade.detectMultiScale(imggray,1.05,10)
+a='A';
+for (x,y,w,h) in faces:
+    cv2.rectangle(imgre,(x,y),(x+w,y+h),(255,0,0),2 )
+    cv2.putText(imgre,a,(x+25,y+25),cv2.FONT_HERSHEY_TRIPLEX,1,(255,0,0),1)
+
+
+cv2.imshow("pic",imgre)
+cv2.waitKey(0)
