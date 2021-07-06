@@ -1,0 +1,77 @@
+import cv2
+import numpy as np
+kernel=np.ones((5,5),np.uint8)
+
+
+def imagepreprocessing(img):
+    imggray=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    imgblur=cv2.GaussianBlur(imggray,(5,5),0)
+    imgcanny=cv2.Canny(imgblur,80,80)
+    imgd=cv2.dilate(imgcanny,kernel,iterations=2)
+    imgerode=cv2.erode(imgd,kernel,iterations=1)
+
+    return  imgerode
+
+def getcontour(img):
+    biggest=np.array([])
+    maxarea=0
+    contours,hierchy=cv2.findContours(img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+    for cnt in contours:
+        area=cv2.contourArea(cnt)
+        #print(area)
+        if area>=5000:
+          #cv2.drawContours(img2, cnt, -1, (250, 0, 0), 3)
+          peri=cv2.arcLength(cnt,True)
+          approx=cv2.approxPolyDP(cnt,0.01*peri,True)
+          if area>maxarea and len(approx)==4:
+              biggest=approx
+              maxarea=area
+    cv2.drawContours(img2, biggest, -1, (250, 0, 0), 20)
+    return biggest
+
+def reorder(mypoints):
+   mypoints=mypoints.reshape((4,2))
+   mypointsnew=np.zeros((4,1,2),np.int32)
+   add=mypoints.sum(1)
+
+   mypointsnew[0]=mypoints[np.argmin(add)]
+   mypointsnew[3] = mypoints[np.argmax(add)]
+   diff=np.diff(mypoints,axis=1)
+   mypointsnew[1] = mypoints[np.argmin(diff)]
+   mypointsnew[2] = mypoints[np.argmax(diff)]
+
+   return mypointsnew
+
+
+
+def getwrap(img,biggest):
+    biggest=reorder(biggest)
+    # print(biggest.shape)
+    pts1=np.float32(biggest)
+    pts2=np.float32([[0,0],[500,0],[0,500],[500,500]])
+    matrix=cv2.getPerspectiveTransform(pts1,pts2)
+    imgoutput=cv2.warpPerspective(img,matrix,(500,500))
+
+    return imgoutput
+
+
+cap=cv2.VideoCapture(1)
+while True:
+    success , img=cap.read()
+    img2 = img.copy()
+    imgf=imagepreprocessing(img)
+
+    biggest=getcontour(imgf)
+    finalimage=getwrap(img,biggest)
+    cv2.imshow("video",finalimage)
+
+
+    if cv2.waitKey(1) & 0xFF==ord('q'):
+        break
+
+
+
+
+cap.release()
+# Destroy all the windows
+cv2.destroyAllWindows()
