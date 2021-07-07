@@ -1,0 +1,24 @@
+import cv2
+import numpy as np
+kernel=np.ones((5,5),np.uint8)
+nplatecascade=cv2.CascadeClassifier("resources/haarcascade_russian_plate_number.xml")
+
+
+
+
+
+
+img = cv2.imread("resources/car3.jpeg")
+imgr=cv2.resize(img,(800,400))
+imgray=cv2.cvtColor(imgr,cv2.COLOR_BGR2GRAY)
+numberplate=nplatecascade.detectMultiScale(imgray,1.1,4)
+for(x,y,w,h) in numberplate:
+    area=w*h
+    if(area>500):
+        cv2.rectangle(imgr,(x,y),(x+w,y+h),(255,0,0),2)
+        cv2.putText(imgr,"Number plate",(x,y-5),cv2.FONT_HERSHEY_DUPLEX,1,(255,0,0),2)
+        imgfinal=imgr[y:y+h,x:x+w]
+        cv2.imshow("roi",imgfinal)
+
+cv2.imshow("output",imgr)
+cv2.waitKey(0)
