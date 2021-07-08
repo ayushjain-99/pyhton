@@ -1,0 +1,107 @@
+import os
+import re
+
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def average_slope_intercept(image, lines):
+    left_fit = []
+    right_fit = []
+    for line in lines:
+        x1, y1, x2, y2 = line.reshape(4)
+
+        # It will fit the polynomial and the intercept and slope
+        parameters = np.polyfit((x1, x2), (y1, y2), 1)
+        slope = parameters[0]
+        intercept = parameters[1]
+        if slope < 0:
+            left_fit.append((slope, intercept))
+        else:
+            right_fit.append((slope, intercept))
+
+    left_fit_average = np.average(left_fit, axis=0)
+    right_fit_average = np.average(right_fit, axis=0)
+    left_line = create_coordinates(image, left_fit_average)
+    right_line = create_coordinates(image, right_fit_average)
+    return np.array([left_line, right_line])
+
+def create_coordinates(image, line_parameters):
+    slope, intercept = line_parameters
+    y1 = image.shape[0]
+    y2 = int(y1 * (3 / 5))
+    x1 = int((y1 - intercept) / slope)
+    x2 = int((y2 - intercept) / slope)
+    return np.array([x1, y1, x2, y2])
+
+def display_lines(image, lines):
+    line_image = np.zeros_like(image)
+    if lines is not None:
+        for x1, y1, x2, y2 in lines:
+            cv2.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 10)
+    return line_image
+
+
+def canny(imgr):
+    imggray = cv2.cvtColor(imgr, cv2.COLOR_BGR2GRAY)
+    imgblur = cv2.GaussianBlur(imggray, (5, 5), 0)
+    imgcanny = cv2.Canny(imgblur, 50, 50)
+    return imgcanny
+
+def draw_line(img,lines):
+    imgcopy=np.copy(img)
+    line_image=np.zeros((img.shape[0],img.shape[1],3),dtype=np.uint8)
+
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),thickness=3)
+
+    img=cv2.addWeighted(img,0.8,line_image,1,0.0)
+    return img
+
+def region(img,vertices):
+    mask=np.zeros_like(img)
+    #channel_count=img.shape[2]
+    match_mask_color=255
+    cv2.fillPoly(mask,vertices,match_mask_color)
+    masked_image=cv2.bitwise_and(img,mask)
+    return masked_image
+
+
+cap=cv2.VideoCapture("resources/video8.mp4")
+#img=cv2.imread("resources/road1.png")
+while(cap.isOpened()):
+    _, img=cap.read()
+    imgr=cv2.resize(img,(800,500))
+    laneimg=np.copy(imgr)
+
+    height=imgr.shape[0]
+    width=imgr.shape[1]
+    region_vertices=[(0,height),(width/2,height/2),(width,height)]
+
+    imgcanny=canny(imgr)
+    cropped_image=region(imgcanny,np.array([region_vertices],np.int32))
+    lines=cv2.HoughLinesP(cropped_image,
+                     rho=6,
+                     theta=np.pi/60,
+                     threshold=160,
+                     lines=np.array([]),
+                      minLineLength=40,
+                      maxLineGap=5)
+    image_lines=draw_line(imgr ,lines)
+    cv2.imshow("image",image_lines)
+    cv2.imshow("image2",cropped_image)
+    #averaged_lines = average_slope_intercept(imgr, lines)
+    #line_image = display_lines(imgr, averaged_lines)
+    #combo_image = cv2.addWeighted(imgr, 0.8, line_image, 1, 1)
+    #cv2.imshow("results", combo_image)
+    #plt.imshow(image_lines)
+#plt.imshow(cropped_image)
+    #plt.show()
+
+    if cv2.waitKey(30) & 0xFF==ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
